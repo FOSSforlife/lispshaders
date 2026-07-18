@@ -1,0 +1,89 @@
+site_name: lispshaders
+site_description: >-
+  A Shadertoy-style sandbox where the shading language — and the drone
+  language — is a Clojure dialect.
+
+theme:
+  name: material
+  icon:
+    logo: material/lambda
+  palette:
+    # Dark first: it matches the app itself.
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: green
+      accent: light green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: green
+      accent: light green
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - 'Tutorial: your first effects': tutorial.md
+  - The language:
+      - Thinking in shaders: language/thinking.md
+      - Program shape: language/index.md
+      - Inputs & coordinates: language/inputs.md
+      - Vectors & swizzles: language/vectors.md
+      - Flow control: language/flow.md
+      - Loops with iter: language/iter.md
+      - Functions & defs: language/functions.md
+      - Builtin reference: language/reference.md
+      - Errors & Clojure differences: language/errors.md
+  - Drones:
+      - The big idea: sound/index.md
+      - 'defsound: designing drones': sound/defsound.md
+      - Movement & modulation: sound/movement.md
+      - 'Aggression: FM & distortion': sound/aggression.md
+      - Audio-reactive shaders: sound/audio-reactive.md
+      - For Max/MSP users: sound/for-maxmsp-users.md
+  - Exporting shaders: export.md
+  - Cookbook:
+      - Overview: cookbook/index.md
+      - Coordinates & color: cookbook/coordinates-and-color.md
+      - Summing fields: cookbook/summing-fields.md
+      - Domain warping: cookbook/domain-warping.md
+      - Glowing fields: cookbook/glowing-fields.md
+      - Faking light: cookbook/faking-light.md
+      - Tunnels: cookbook/tunnels.md
+      - Hyperspace: cookbook/hyperspace.md
+      - Raymarched blobs: cookbook/raymarched-blobs.md
+      - Volumetric marching: cookbook/volumetric-marching.md
+      - Fractals: cookbook/fractals.md
+      - The four elements: cookbook/four-elements.md
+      - Drone garden: cookbook/drone-garden.md
+      - Idioms to pocket: cookbook/idioms.md
+  - Under the hood: internals.md

@@ -1,0 +1,29 @@
+{
+  "name": "lispshaders",
+  "private": true,
+  "description": "A Shadertoy-style sandbox where you write shaders in Clojure",
+  "scripts": {
+    "dev": "shadow-cljs watch app",
+    "build": "shadow-cljs release app",
+    "test": "shadow-cljs compile test && node out/node-tests.js",
+    "docs:serve": "uvx --with mkdocs-material mkdocs serve",
+    "docs:build": "uvx --with mkdocs-material mkdocs build",
+    "deploy:staging": "pnpm build && pnpm docs:build && rsync -rv public/* $LAN_SERVER:/usr/share/caddy/staging/lispshaders && rsync -rv site/* $LAN_SERVER:/usr/share/caddy/staging/lispshaders/docs",
+    "deploy:prod": "rsync -rv public/* $WEB_SERVER:/usr/share/caddy/lispshaders && rsync -rv site/* $WEB_SERVER:/usr/share/caddy/lispshaders/docs"
+  },
+  "dependencies": {
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/legacy-modes": "^6.4.0",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@codemirror/view": "^6.26.0",
+    "@elemaudio/core": "^4.0.1",
+    "@elemaudio/web-renderer": "^4.0.3",
+    "codemirror": "^6.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "shadow-cljs": "^2.28.20"
+  }
+}
