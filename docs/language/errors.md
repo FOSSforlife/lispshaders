@@ -21,7 +21,7 @@ Each of these is rejected with a hint pointing at the replacement:
 | `map` `reduce` `for`    | Lazy sequences don't exist at shader level                         | `iter` with an accumulator                                                                   |
 | `when` / `when-not`     | No else branch, but a shader must always produce a value           | `(if c then else)`                                                                           |
 | `do`                    | Implies side effects; shaders have none                            | `let` to name intermediate values                                                            |
-| `fn` (anonymous fns)    | Functions are compile-time inlining, not values                    | A top-level `defn`                                                                           |
+| `fn` as a stored value  | Functions are compile-time inlining, not values to pass around     | An inline [`#(...)`](functions.md#inline-shorthand) called on the spot, or a top-level `defn` |
 | Recursive `defn`s       | Inlining a self-call never terminates (and GLSL forbids recursion) | `iter`                                                                                       |
 | `[a b]` as a value      | Reserved for `iter` state updates                                  | `(vec2 a b)`                                                                                 |
 | `def` inside a function | Definitions are top-level structure                                | `let`                                                                                        |

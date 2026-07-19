@@ -83,6 +83,60 @@
     (is (str/includes? out "(uv.x * 2.0)")
         "simple args substitute directly, no temp needed")))
 
+(deftest anon-fn-shorthand-inlines
+  (testing "% is the sole argument"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (#(* % 2.0) (:x uv))))")
+                       "(uv.x * 2.0)")
+        "an immediately-called #() inlines just like a named helper"))
+  (testing "%1 %2 are positional arguments"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (#(+ (* %1 %1) %2) (:x uv) (:y uv))))")
+                       "((uv.x * uv.x) + uv.y)")))
+  (testing "a zero-arg #() is allowed"
+    (is (str/includes? (glsl "(defn image [uv] (#(vec3 (:x uv))))")
+                       "vec3(uv.x)")))
+  (testing "#() works inside a drone too"
+    (is (some? (audio-lib/make-drone-fn
+                (:js-body (first (:drones (compiler/compile-shader
+                                           "(defsound hum (#(* % 0.3) (osc :a2)))")))))))))
+
+(deftest anon-fn-shorthand-threads
+  (testing "a bare #() in -> is called with the threaded value"
+    (is (str/includes? (glsl "(defn image [uv] (-> (:x uv) #(* % %) vec3))")
+                       "(uv.x * uv.x)")))
+  (testing "extra args around % are kept"
+    (is (str/includes? (glsl "(defn image [uv] (-> (:x uv) #(+ % 2.0) vec3))")
+                       "(uv.x + 2.0)")))
+  (testing "a bare #() threads the same way in ->>"
+    (is (str/includes? (glsl "(defn image [uv] (->> (:x uv) #(* % 3.0) vec3))")
+                       "(uv.x * 3.0)")))
+  (testing "the explicitly-wrapped idiom (#(...)) still works too"
+    (is (str/includes? (glsl "(defn image [uv] (-> (:x uv) (#(* % %)) vec3))")
+                       "(uv.x * uv.x)"))))
+
+(deftest anon-fn-shorthand-errors
+  (testing "arity mismatch is reported"
+    (is (str/includes? (compile-error "(defn image [uv] (vec3 (#(+ %1 %2) (:x uv))))")
+                       "2 argument")))
+  (testing "rest args are rejected"
+    (is (str/includes? (compile-error "(defn image [uv] (vec3 (#(vec3 %&) (:x uv))))")
+                       "rest argument")))
+  (testing "nesting is rejected"
+    (is (str/includes? (compile-error "(defn image [uv] (vec3 (#(#(* % %) %) (:x uv))))")
+                       "Nested")))
+  (testing "an uncalled #() can't be used as a value"
+    (is (str/includes? (compile-error "(defn image [uv] #(* % %))")
+                       "called"))))
+
+(deftest anon-fn-shorthand-ignores-strings-and-comments
+  (testing "a #( inside a string literal is left verbatim"
+    (let [js (:js-body (first (:drones (compiler/compile-shader
+                                        "(defsound s (sample \"a#(b\" 1.0))"))))]
+      (is (str/includes? js "a#(b")
+          "the sample name must survive preprocessing untouched")))
+  (testing "a #( in a ; comment is ignored, and the code still compiles"
+    (is (str/includes? (glsl "(defn image [uv] ; try #(inc %)\n  (vec3 (:x uv)))")
+                       "void main()"))))
+
 (deftest defs-become-main-locals
   (let [out (glsl "(def speed 2.0)
                    (defn image [uv] (vec3 (sin (* time speed))))")]

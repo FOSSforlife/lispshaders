@@ -20,6 +20,42 @@
 - A user `defn` **shadows a builtin** of the same name, so you can
   redefine `noise` if you have opinions about noise.
 
+## `#()` — inline shorthand
+
+For a helper too small to deserve a name, use Clojure's anonymous-function
+shorthand right at the call site:
+
+```clojure
+(defn image [uv]
+  (let [sq  (#(* % %) (:x uv))        ; % is the single argument
+        lo  (#(+ (* %1 %1) %2) (:x uv) (:y uv))]   ; %1 %2 are positional
+    (vec3 sq lo 0.0)))
+```
+
+- `%` is the first (and only) argument; `%1`, `%2`, … are positional. `%`
+  and `%1` mean the same thing.
+- The arity is however many parameters the body mentions — `#(vec3 %)` takes
+  one, `#(+ %1 %2)` takes two, `#(vec3 0.0)` takes none.
+- Because there are **no first-class functions** here (see inlining below), an
+  `#()` only makes sense when it's called immediately — `(#(...) args)`. You
+  can't store one in a `let` and pass it around, and rest args (`%&`) and
+  nesting one `#()` inside another aren't supported, just as in Clojure.
+
+Inside a thread, a bare `#()` is **called** with the threaded value (bound to
+`%`) — no extra wrapping parens needed:
+
+```clojure
+(defn image [uv]
+  (-> (:x uv)
+      #(* % %)          ; threaded value binds to %  →  (#(* % %) (:x uv))
+      (+ 0.1)
+      vec3))
+```
+
+An `#()` compiles exactly like a one-off `defn`: it's inlined at the call
+site, so it works in both the shader and a `defsound` and needs no type
+annotations.
+
 ## Inlining: how functions really work
 
 User functions don't compile to GLSL functions — every call is **inlined**:

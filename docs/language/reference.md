@@ -13,6 +13,7 @@ click away while you write.
 | -------------------------------------------- | ------------------------------------------------------------- |
 | `(def name expr)`                            | Top-level named value, computed once per pixel                |
 | `(defn name [args] body)`                    | Helper function, inlined at call sites                        |
+| `(#(* % %) x)`                               | Inline `#()` shorthand, called on the spot (`%`, `%1`, `%2` …) |
 | `(defsound name body)`                       | One layer of the soundscape — see [Drones](../sound/index.md) |
 | `(let [a 1.0 b (* a 2.0)] body)`             | Local bindings; later ones see earlier ones                   |
 | `(if c then else)`                           | Both branches typed alike; `else` required                    |

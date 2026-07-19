@@ -563,11 +563,15 @@
      :type (:type result-r)}))
 
 (defn- thread-step [first? acc form]
-  (if (seq? form)
-    (if first?
-      (apply list (first form) acc (rest form))
-      (concat form [acc]))
-    (list form acc)))
+  (cond
+    ;; A bare #() threads as a call, like a bare symbol does:
+    ;; (-> x #(f % 2.0)) => (#(f % 2.0) x), with the threaded value bound to %.
+    ;; (Otherwise the value would splice into the function's body, not call it.)
+    (and (seq? form) (= 'fn-shorthand (first form))) (list form acc)
+    (seq? form) (if first?
+                  (apply list (first form) acc (rest form))
+                  (concat form [acc]))
+    :else (list form acc)))
 
 (defn- compile-threading [first? ctx env [_ x & forms :as form]]
   (when (nil? x) (fail! "-> needs something to thread" form))
@@ -604,6 +608,73 @@
                   (map vector params arg-results))
           body-r (expect-value (compile-expr ctx {:vars vars :depth depth} body) form)]
       (assoc body-r :stmts (into stmts (:stmts body-r))))))
+
+;; ---------------------------------------------------------------------------
+;; Anonymous-function shorthand: #(...)
+;;
+;; Clojure's #(...) is an EDN-invisible reader macro, so the source text is
+;; rewritten to (fn-shorthand body...) before reading (see
+;; expand-anon-shorthand). Here we turn that marker form back into the same
+;; {:params :body} shape a (defn ...) has, and inline it at its call site.
+;; There are no first-class functions, so an #() is only meaningful when it's
+;; called immediately: (#(* % %) 3.0).
+
+(defn- anon-arg-index
+  "For an implicit #() parameter symbol, its 1-based position: % => 1,
+   %1..%9(0) => that number, %& => :rest. nil for any other symbol."
+  [sym]
+  (when (symbol? sym)
+    (let [s (name sym)]
+      (cond
+        (= s "%")  1
+        (= s "%&") :rest
+        (re-matches #"%[1-9][0-9]*" s) (js/parseInt (subs s 1) 10)
+        :else nil))))
+
+(defn- form-symbols
+  "Every symbol appearing anywhere in a form (depth-first)."
+  [form]
+  (cond
+    (symbol? form) [form]
+    (or (seq? form) (vector? form)) (mapcat form-symbols form)
+    (map? form) (mapcat form-symbols (concat (keys form) (vals form)))
+    :else nil))
+
+(defn- rewrite-anon-arg
+  "Rename the bare % to %1 so it lines up with the generated parameter list."
+  [form]
+  (cond
+    (and (symbol? form) (= "%" (name form))) '%1
+    (seq? form)    (apply list (map rewrite-anon-arg form))
+    (vector? form) (mapv rewrite-anon-arg form)
+    (map? form)    (into {} (map (fn [[k v]] [(rewrite-anon-arg k) (rewrite-anon-arg v)])) form)
+    :else form))
+
+(defn- anon-fn-spec
+  "Turn a (fn-shorthand body...) marker into a {:params :body} the inliner
+   understands. Implicit parameters are % and %1..%N (% is an alias for %1);
+   the arity is the highest index referenced. Rest args (%&) and nesting
+   aren't supported, mirroring Clojure's own #() rules."
+  [[_ & body-parts :as form]]
+  (let [body (apply list body-parts)
+        syms (form-symbols body)]
+    (when (some #(= 'fn-shorthand %) syms)
+      (fail! "Nested #(...) anonymous functions aren't allowed" form))
+    (let [indices (keep anon-arg-index syms)]
+      (when (some #{:rest} indices)
+        (fail! "#(... %& ...) rest arguments aren't supported — list each parameter, e.g. %1 %2" form))
+      {:params (mapv #(symbol (str "%" %)) (range 1 (inc (reduce max 0 indices))))
+       :body (rewrite-anon-arg body)})))
+
+(defn- compile-anon-call
+  "Inline an immediately-called #() shorthand: ((fn-shorthand ...) & args).
+   Since anonymous functions have no runtime value here, this is the only
+   place one can appear — inlined exactly like a named (defn ...)."
+  [ctx env [op & args :as form]]
+  (if (and (seq? op) (= 'fn-shorthand (first op)))
+    (let [env (dissoc env :tuple-arity)]
+      (inline-call ctx env "#()" (anon-fn-spec op) (compile-args ctx env args form) form))
+    (fail! (str "Can't call " (pr-str op) " as a function") form)))
 
 ;; ---------------------------------------------------------------------------
 ;; Uploaded media: samples in drones, textures in shaders
@@ -702,7 +773,8 @@
    'recur "Clojure loop/recur doesn't map to GPUs — use (iter [i n] [state init] body) instead"
    'when "when has no else branch, but a shader always needs a value — use (if c then else)"
    'when-not "when-not has no else branch — use (if (not c) then else)"
-   'fn "anonymous functions aren't supported — use a top-level (defn name [args] body)"
+   'fn "(fn ...) isn't supported — write an #(...) shorthand for a quick inline function, or a top-level (defn name [args] body)"
+   'fn-shorthand "an #(...) function has to be called right where it's written, like (#(* % %) 3.0) — there's nothing to pass it to"
    'do "do implies side effects, which shaders don't have — use let to name intermediate values"
    'map "sequence functions run at Clojure level, which this compiler skips — use iter or vec math"
    'reduce "sequence functions aren't supported — use (iter [i n] [acc init] body) to accumulate"
@@ -718,6 +790,9 @@
     (nil? op) (fail! "Empty list () isn't a valid expression" form)
 
     (keyword? op) (compile-swizzle ctx env form)
+
+    ;; ((fn-shorthand ...) args) — an #() shorthand called on the spot
+    (seq? op) (compile-anon-call ctx env form)
 
     (not (symbol? op))
     (fail! (str "Can't call " (pr-str op) " as a function") form)
@@ -1116,6 +1191,38 @@
        "  fragColor = " color ";\n"
        "}\n"))
 
+(defn- expand-anon-shorthand
+  "Rewrite Clojure's #(...) anonymous-function shorthand into (fn-shorthand ...)
+   forms the reader can parse — cljs.reader reads EDN, which has no #() dispatch
+   of its own. Only a literal `#` directly followed by `(` is touched, and never
+   inside a string, character literal, or ; comment, so text like \"#(\" or a
+   commented-out ; #(...) is left exactly as written."
+  [src]
+  (let [n (count src)]
+    (loop [i 0, out [], state :normal]
+      (if (>= i n)
+        (apply str out)
+        (let [c (nth src i)]
+          (case state
+            :normal
+            (cond
+              (= c \;) (recur (inc i) (conj out c) :comment)
+              (= c \") (recur (inc i) (conj out c) :string)
+              ;; \x character literal — copy the backslash, protect the next char
+              (= c \\) (recur (inc i) (conj out c) :char)
+              (and (= c \#) (< (inc i) n) (= (nth src (inc i)) \())
+              (recur (+ i 2) (conj out "(fn-shorthand ") :normal)
+              :else (recur (inc i) (conj out c) :normal))
+            :comment
+            (recur (inc i) (conj out c) (if (= c \newline) :normal :comment))
+            :string
+            (cond
+              (= c \\) (recur (inc i) (conj out c) :string-escape)
+              (= c \") (recur (inc i) (conj out c) :normal)
+              :else (recur (inc i) (conj out c) :string))
+            :string-escape (recur (inc i) (conj out c) :string)
+            :char (recur (inc i) (conj out c) :normal)))))))
+
 (defn compile-shader
   "Compile DSL source text into every target. Returns
      {:glsl <webgl2 fragment shader>
@@ -1127,7 +1234,7 @@
    Throws ex-info with a friendly message on any reader or compile error."
   ([src] (compile-shader src nil))
   ([src media]
-   (let [forms (try (reader/read-string (str "[\n" src "\n]"))
+   (let [forms (try (reader/read-string (str "[\n" (expand-anon-shorthand src) "\n]"))
                     (catch :default e
                       (fail! (str "Couldn't read the code: " (ex-message e)))))
          collected (collect-toplevel forms)
