@@ -36,6 +36,67 @@ prelude's `smin` fuses them like heated wax. This is
 moment geometry gets an algebra, every algebra question ("what unions with
 what? what's the do-nothing shape?") becomes a new technique.
 
+## The camera is a projection
+
+Before you can march a ray you have to *aim* it, and the aiming is the
+whole of perspective. A perspective view is a **pinhole camera**: one eye
+point, and one flat image plane floating in front of it. Every pixel is a
+ray that starts at the eye and passes through that pixel's spot on the
+plane. Two lines in `image` set the whole thing up:
+
+```clojure
+(let [ro (vec3 0.0 1.1 -3.5)      ; the eye: where all rays begin
+      rd (normalize (vec3 uvc 1.6))] ; the aim: one ray per pixel
+  ...)
+```
+
+`ro` is trivial — a fixed point in space. All the geometry hides in `rd`,
+so build it up one component at a time.
+
+**Step 1 — the pixel's spot on the image plane.** `uvc` is this pixel's
+screen position, [centered and aspect-corrected](../language/inputs.md#coordinates):
+`(0, 0)` dead center, roughly `±1` toward the edges. Read it as a point on
+a plane standing upright in front of the camera — its *x* and *y* are how
+far right and up this pixel sits from the center of your view.
+
+**Step 2 — push the plane forward.** `(vec3 uvc 1.6)` stacks a *z* of
+`1.6` under that `(x, y)`. Now it's a 3D point: `1.6` units *ahead* of the
+eye, offset sideways and up by `uvc`. That `1.6` is the **focal length** —
+the eye-to-plane distance — and it's the only knob that matters here. Call
+it `f`, and the ray (before normalizing) is just `(uvc.x, uvc.y, f)`.
+
+**Step 3 — turn a point into a pure direction.** `normalize` scales that
+vector to length 1, discarding *how far away* the plane sits and keeping
+only *which way* the ray points. A center pixel (`uvc ≈ 0`) becomes
+`(0, 0, 1)` — straight ahead. An edge pixel tilts off-axis. Because every
+ray shares the origin `ro` but leaves at its own angle, the rays **fan
+out** — and a fan is exactly what makes distant things look small: two
+points the same size in the world subtend a smaller angle the farther off
+they are, so fewer rays land on them. That shrinking-with-distance *is*
+perspective.
+
+### Focal length is your field of view
+
+The half-width of what you can see is set by how the plane's edge (`u ≈ 1`)
+compares to its depth `f`. The edge ray makes a right triangle — opposite
+side `≈ 1`, adjacent side `f` — so `tan(fov/2) = 1/f`, i.e.
+`fov = 2·atan(1/f)`.
+
+So `f = 1.6` gives a half-angle of `atan(1/1.6) ≈ 32°`, a ~64° field of
+view — a natural, slightly-tight lens. Crank `f` **up** and the edges
+crowd toward center: a narrow FOV, the flattening *telephoto* zoom. Pull
+`f` **down** toward `1.0` or below and the rays splay wide: a wide-angle,
+almost fisheye bulge. It's a real camera lens, expressed as one number.
+
+*(Drop the `f` entirely and use parallel rays — `(normalize (vec3 uvc 0.0))`
+won't work, but a fixed `(vec3 0 0 1)` with `ro` shifted by `uvc` would —
+and you get an **orthographic** view instead: no vanishing point, distant
+things stay full size. Perspective is precisely the choice to let every
+ray share one origin.)*
+
+**Try:** replace `1.6` with `4.0` (zoom in flat), then `0.8` (wide and
+warped). You're changing lenses without touching the scene.
+
 ## The march is just iter
 
 Sphere tracing walks a ray forward in safe steps: `scene` reports the
