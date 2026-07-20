@@ -83,6 +83,15 @@
     (is (str/includes? out "(uv.x * 2.0)")
         "simple args substitute directly, no temp needed")))
 
+(deftest rsub-and-rdiv-builtins-flip-operands
+  (let [out (glsl "(defn image [uv] (vec3 (rdiv (:x uv) 6.0) (rsub (:y uv) 1.0) 0.0))")]
+    (is (str/includes? out "(6.0 / uv.x)") "rdiv is n/m — reversed divide")
+    (is (str/includes? out "(1.0 - uv.y)") "rsub is n-m — reversed subtract"))
+  (testing "a user's own definition shadows the builtin"
+    (is (str/includes? (glsl "(defn rdiv [m n] (* m n))
+                              (defn image [uv] (vec3 (rdiv (:x uv) 6.0)))")
+                       "(uv.x * 6.0)"))))
+
 (deftest anon-fn-shorthand-inlines
   (testing "% is the sole argument"
     (is (str/includes? (glsl "(defn image [uv] (vec3 (#(* % 2.0) (:x uv))))")

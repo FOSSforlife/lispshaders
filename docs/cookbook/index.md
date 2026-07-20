@@ -32,6 +32,7 @@ whatever it assumes.
 | [Fractals](fractals.md) | Infinite detail from a rule repeated |
 | [The four elements](four-elements.md) | Fire, water, earth & air — old moves, recombined |
 | [Drone garden](drone-garden.md) | One program, projected to both image and sound |
+| [Drum sequencer](drum-sequencer.md) | Rhythm with no scheduler — a beat is a shape in time |
 
 And once the patterns are in your hands, keep the
 [small idioms](idioms.md) within reach — the one-liners that show up in

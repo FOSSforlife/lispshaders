@@ -86,5 +86,6 @@ nav:
       - Fractals: cookbook/fractals.md
       - The four elements: cookbook/four-elements.md
       - Drone garden: cookbook/drone-garden.md
+      - Drum sequencer: cookbook/drum-sequencer.md
       - Idioms to pocket: cookbook/idioms.md
   - Under the hood: internals.md

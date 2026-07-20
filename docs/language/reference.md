@@ -57,6 +57,8 @@ and drones alike.
 | `(+ a b ...)`, `(- a b ...)`, `(* a b ...)`, `(/ a b ...)` | N-ary, folding left. Componentwise on same-size vectors; scalars broadcast; `*` also does matrix×vector / matrix×matrix |
 | `(- x)`                                                    | Negation                                                                                                                |
 | `(/ x)`                                                    | Reciprocal, `1.0 / x`                                                                                                   |
+| `(rsub m n)`                                               | Reversed subtract, `n - m` — reads well threaded: `(-> x (rsub 1.0))` is `1.0 - x`                                       |
+| `(rdiv m n)`                                               | Reversed divide, `n / m` — reads well threaded: `(-> x (rdiv 6.0))` is `6.0 / x`                                         |
 
 ## Trigonometry
 

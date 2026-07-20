@@ -94,6 +94,74 @@
                      (vec3 1.0) (vec3 0.0 0.33 0.67))]
     (* col (+ 0.2 (* (+ 0.4 (* 1.6 bass)) v)))))"}
 
+   {:name "drum sequencer"
+    :code
+";; A drum machine with no scheduler. The trick: a drum pattern is a
+;; *shape in time*, and `fract` is the only clock you need. It turns
+;; rising `time` into a sawtooth that snaps back to 0 on every downbeat —
+;; that snap is the trigger, and the ramp climbing away from it is the
+;; envelope. One expression is a Max/MSP `phasor~`, its edge detector, and
+;; the `line~` after it, all at once. Press ◉ start drone to hear it.
+
+;; ── The clock ──────────────────────────────────────────────────────
+(defparam bpm 120.0 60.0 180.0)
+(def bar-hz (/ bpm 240.0))                    ; a 4-beat bar, in bars/second
+(def phase (* 16.0 (fract (* time bar-hz))))  ; 0..16 sweep across the bar
+(def idx   (floor phase))                     ; the sixteenth we're on (0..15)
+(def local (fract phase))                     ; 0..1 ramp *inside* that step
+
+;; is whole-number step `a` the same as `b`?  1.0 if so, else 0.0
+(defn is [a b] (- 1.0 (step 0.5 (abs (- a b)))))
+;; a percussive envelope: a spike at each step edge, decaying by `fall`
+(defn perc [fall] (pow (- 1.0 local) fall))
+
+;; ── The patterns ───────────────────────────────────────────────────
+;; One source of truth per drum: 'is step `s` a hit?'. Read them like a
+;; grid and edit the numbers to program a beat (a uniform pattern like the
+;; hats is really just a faster phasor — but the list lets you syncopate).
+(defn kick?  [s] (+ (is s 0) (is s 6) (is s 8)  (is s 14)))
+(defn snare? [s] (+ (is s 4) (is s 12)))
+(defn hat?   [s] (+ (is s 2) (is s 6) (is s 10) (is s 14)))
+
+;; ── The voices ─────────────────────────────────────────────────────
+;; Each drum = trigger (does this step hit?) x envelope x a little synth.
+(defsound kick
+  (let [amp (* (kick? idx) (perc 8.0))
+        ;; pitch dives from ~125 Hz down to 45 — the classic 808 thump
+        f   (+ 45.0 (* 80.0 (perc 40.0)))]
+    (->> (osc f) (* amp) (drive 0.3) (* 0.9))))
+
+(defsound snare
+  (let [crack (* (->> (noise) (highpass 1500.0 1.0)) (perc 18.0))
+        body  (* 0.7 (osc 180.0) (perc 26.0))]     ; a short tonal 'thwack'
+    (->> (+ crack body) (* (snare? idx) 0.5) (space 0.15))))
+
+(defsound hat
+  (let [tick (* (->> (noise) (highpass 8000.0 1.0)) (perc 60.0))]
+    (->> tick (* (hat? idx) 0.3) (pan 0.62))))     ; ticks off to one side
+
+;; ── The view: the sequencer grid, playing itself ───────────────────
+;; Three lanes (kick / snare / hat) x sixteen steps. Programmed hits glow;
+;; the playhead sweeps left to right and flashes each cell as it fires —
+;; driven by the same `idx` and `perc` the sound uses, so eye and ear lock.
+(defn image [uv]
+  (let [c   (floor (* 16.0 (:x uv)))          ; step column 0..15
+        row (floor (* 3.0  (:y uv)))          ; lane: 0 kick, 1 snare, 2 hat
+        hit (cond (= row 0.0) (kick? c)
+                  (= row 1.0) (snare? c)
+                  :else       (hat? c))
+        tint (cond (= row 0.0) (vec3 1.0 0.45 0.2)   ; kick  — warm
+                   (= row 1.0) (vec3 0.35 0.8 1.0)   ; snare — blue
+                   :else       (vec3 0.95 0.85 0.3)) ; hat   — yellow
+        here  (is c idx)                      ; is the playhead on this column?
+        flash (* here (perc 4.0))             ; the sweeping trigger flash
+        ;; thin gutters carve the plane into cells
+        gx (smoothstep 0.0 0.06 (- 0.5 (abs (- (fract (* 16.0 (:x uv))) 0.5))))
+        gy (smoothstep 0.0 0.10 (- 0.5 (abs (- (fract (* 3.0  (:y uv))) 0.5))))
+        ;; dim grid, lit hits, playhead flash, and a kick-driven `bass` glow
+        bright (+ 0.08 (* 0.5 hit) (* 0.9 flash) (* 0.6 hit bass))]
+    (* tint bright gx gy)))"}
+
    {:name "cosine waves"
     :code
 ";; IQ's cosine palette: four vec3 knobs give endless color schemes.

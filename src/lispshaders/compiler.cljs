@@ -1062,6 +1062,16 @@
           [ctx []]
           defs))
 
+(def ^:private std-prelude-src
+  "Standard helper functions always in scope, written in the DSL itself.
+   They're inlined at their call sites like any (defn ...), so they stay
+   generic over scalars and vectors. A user's own (defn ...) of the same
+   name shadows the builtin."
+  ;; rdiv/rsub flip the operands of / and - so they read naturally when
+  ;; threaded: (-> x (rdiv 6.0)) is 6.0/x, (-> x (rsub 1.0)) is 1.0-x.
+  "(defn rdiv [m n] (/ n m))
+   (defn rsub [m n] (- n m))")
+
 (def ^:private fallback-image-src
   "When a program defines drones but no image, show a bass/mid/treble
    meter instead of failing — sound-first sketches still get visuals."
@@ -1238,6 +1248,11 @@
                     (catch :default e
                       (fail! (str "Couldn't read the code: " (ex-message e)))))
          collected (collect-toplevel forms)
+         ;; builtin helpers are always in scope, but a user (defn ...) of the
+         ;; same name wins — hence merge with the user's fns taking priority
+         std-fns (:fns (collect-toplevel
+                        (reader/read-string (str "[" std-prelude-src "]"))))
+         collected (update collected :fns #(merge std-fns %))
          params (:params collected)
          _ (let [dupes (->> (map first params) frequencies
                             (filter #(> (val %) 1)) (map key))]
