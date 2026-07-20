@@ -60,24 +60,50 @@ and drones alike.
 | `(rsub m n)`                                               | Reversed subtract, `n - m` — reads well threaded: `(-> x (rsub 1.0))` is `1.0 - x`                                       |
 | `(rdiv m n)`                                               | Reversed divide, `n / m` — reads well threaded: `(-> x (rdiv 6.0))` is `6.0 / x`                                         |
 
-## Ranges
+## Range mapping
 
-| Call                                     | Notes                                                                                                         |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+Borrowed from Max/MSP and `gen~`, and available in shaders and drones
+alike. Being ordinary DSL functions, they all work componentwise on
+vectors too — `(bi->uni (vec3 -1.0 0.0 1.0))` is `(0.0, 0.5, 1.0)`.
+
+| Call                                      | Notes                                                                                                         |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `(scale x in-min in-max out-min out-max)` | _gen_ — remap `x` from one range to another, exactly like Max/MSP's `[scale]`. Nothing is clamped: feed it a value outside `in-min..in-max` and you get a proportionally extrapolated result |
-| `(bi->uni x)`                            | _gen_ — bipolar → unipolar: `-1..1` becomes `0..1`, i.e. `(scale x -1.0 1.0 0.0 1.0)`                        |
-| `(uni->bi x)`                            | _gen_ — unipolar → bipolar: `0..1` becomes `-1..1`, i.e. `(scale x 0.0 1.0 -1.0 1.0)`                        |
+| `(bi->uni x)`                             | _gen_ — bipolar → unipolar: `-1..1` becomes `0..1`, i.e. `(scale x -1.0 1.0 0.0 1.0)`                        |
+| `(uni->bi x)`                             | _gen_ — unipolar → bipolar: `0..1` becomes `-1..1`, i.e. `(scale x 0.0 1.0 -1.0 1.0)`                        |
+| `(wrap x lo hi)`                          | _gen_ — force `x` into `lo..hi` by jumping back to the far edge; `mod` generalized off zero                   |
+| `(fold x lo hi)`                          | _gen_ — force `x` into `lo..hi` by _reflecting_ off each edge instead of jumping                              |
+| `(quant x step)`                          | _gen_ — snap `x` down to a grid of `step`-sized rungs; `(quant x 0.1)` gives ten bands                        |
 
 `sin`, `cos` and `wander`-style motion swing bipolar; brightness, `mix`
-amounts and `smoothstep` want unipolar. These three are the bridge:
+amounts and `smoothstep` want unipolar. `scale` and the two converters are
+the bridge:
 
 ```clojure
 (mix col-a col-b (bi->uni (sin (* t 2.0))))   ; oscillate a blend
 (-> (:x uv) (scale 0.0 1.0 20.0 200.0))       ; uv across a cutoff sweep
 ```
 
-Because they're ordinary DSL functions, they work componentwise on
-vectors too — `(bi->uni (vec3 -1.0 0.0 1.0))` is `(0.0, 0.5, 1.0)`.
+**`wrap` vs `fold`** is the difference between a value that teleports and
+one that bounces. Wrapping a coordinate tiles space with hard seams;
+folding it mirrors space, so the seams disappear:
+
+```clojure
+(-> (:x uvc) (wrap -1.0 1.0))   ; tiles, with a visible cut at each edge
+(-> (:x uvc) (fold -1.0 1.0))   ; kaleidoscope — edges meet seamlessly
+```
+
+The same split holds in a drone: `fold` on an over-driven signal is a
+wavefolder, adding harmonics rather than flattening peaks — see
+[Aggression](../sound/aggression.md#hard-clip-and-wavefold-the-mean-end).
+
+`quant` is the "scale up, round, scale back down" sandwich with a name. It
+posterizes color, staircases time into steps, and — via `hz->midi` —
+quantizes pitch:
+
+```clojure
+(-> freq hz->midi (quant 1.0) midi->hz)   ; snap a glide to semitones
+```
 
 ## Trigonometry
 
@@ -152,6 +178,7 @@ hashes and `midi->hz` also exist inside drones.
 | `(sd-box p b)`        | `vec3, vec3 → float`   | Signed distance to a box with half-extents `b`                                                                                            |
 | `(sd-torus p t)`      | `vec3, vec2 → float`   | Signed distance to a torus, `t` = `(vec2 major minor)`                                                                                    |
 | `(midi->hz m)`        | `float → float`        | MIDI note number → frequency, Overtone-style (69 → 440)                                                                                   |
+| `(hz->midi f)`        | `float → float`        | The inverse — frequency → note number. Go to note-space to do pitch math, then come back                                                  |
 
 ## Drone builtins
 
@@ -196,3 +223,7 @@ Covered in depth in [Inputs & coordinates](inputs.md):
 `uv` `uvc` `time` `resolution` `mouse` and the audio globals
 `bass` `mid` `treble` `level` `audio`. Inside a drone, `time` is a
 signal — seconds since the engine started.
+
+| Call         | Notes                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| `(ramp rate)` | A 0..1 sawtooth restarting `rate` times a second — `(fract (* time rate))`, the shader counterpart of a drone's `phasor`. Drives anything cyclic: `(mix a b (ramp 0.5))` |

@@ -155,6 +155,7 @@ float midiToHz(float m) {
     [{:sig "uv" :doc "This pixel's position, 0..1 on both axes (bottom-left origin)."}
      {:sig "uvc" :doc "Centered, aspect-correct coords: y spans -1..1, x spans ±aspect. Best for most effects."}
      {:sig "time" :doc "Seconds since the shader started (pausable from the toolbar)."}
+     {:sig "(ramp rate)" :doc "A 0..1 sawtooth restarting rate times a second — the shader counterpart of a drone's phasor. Drives cycles: (mix a b (ramp 0.5))."}
      {:sig "resolution" :doc "Canvas size in pixels, as a vec2."}
      {:sig "mouse" :doc "Mouse position over the canvas, 0..1 on both axes."}
      {:sig "pi, tau" :doc "3.14159..., 6.28318..."}
@@ -164,6 +165,7 @@ float midiToHz(float m) {
     :entries
     [{:sig "(defsound name signal)" :doc "A drone is a signal graph — a shader for your ears. Produce a float (mono) or vec2 (stereo, -1..1). Every defsound is one layer of the soundscape; edits morph the sound live without restarting it."}
      {:sig ":a2, :c#3, :eb1" :doc "Note keywords are frequencies: :a2 compiles to 110.0. Overtone-style, usable anywhere a number fits — (saw :a1)."}
+     {:sig "(midi->hz m), (hz->midi f)" :doc "Convert between MIDI note numbers and Hz (69 is 440.0). Go to note-space to do pitch math — (-> f hz->midi (quant 1.0) midi->hz) snaps a glide to semitones."}
      {:sig "(osc f) (saw f) (square f) (tri f)" :doc "Oscillators at f Hz: sine, and anti-aliased saw/square/triangle. Detune a stack for width: (+ (saw f) (saw (* f 1.003)))."}
      {:sig "(noise) (pink) (phasor f)" :doc "White noise, mellower pink noise, and a raw 0..1 ramp at f Hz."}
      {:sig "(lfo rate), (wander rate)" :doc "Slow modulators, 0..1: a sine breath and a smooth random drift. Patch them into any parameter — that's what makes a drone feel alive."}
@@ -202,6 +204,8 @@ float midiToHz(float m) {
      {:sig "(rsub m n), (rdiv m n)" :doc "Reversed subtract/divide: n - m and n / m. Made for threading — (-> x (rdiv 6.0)) is 6.0/x, (-> x (rsub 1.0)) is 1.0-x."}
      {:sig "(scale x in-min in-max out-min out-max)" :doc "Remap x from one range to another, like Max's [scale]: (scale s 0.0 1.0 20.0 200.0) turns 0..1 into 20..200."}
      {:sig "(bi->uni x), (uni->bi x)" :doc "Convert between bipolar -1..1 and unipolar 0..1 — (bi->uni (sin t)) is an oscillator you can use as brightness."}
+     {:sig "(wrap x lo hi), (fold x lo hi)" :doc "Force x into lo..hi — wrap jumps back to the far edge, fold reflects off it. gen~'s pair; fold is a wavefolder in a drone and a mirror in a shader."}
+     {:sig "(quant x step)" :doc "Snap x down to a grid of step-sized rungs: (quant x 0.1) gives 10 bands. Posterizes color, staircases time, quantizes pitch."}
      {:sig "(clamp x lo hi)" :doc "Constrain x to [lo, hi]."}
      {:sig "(mix a b t)" :doc "Linear blend from a to b by t — the workhorse of shader art."}
      {:sig "(step edge x)" :doc "0.0 when x < edge, else 1.0 — hard threshold."}

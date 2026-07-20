@@ -1078,7 +1078,28 @@
      (+ out-min (* (- out-max out-min)
                    (/ (- x in-min) (- in-max in-min)))))
    (defn bi->uni [x] (scale x -1.0 1.0 0.0 1.0))
-   (defn uni->bi [x] (scale x 0.0 1.0 -1.0 1.0))")
+   (defn uni->bi [x] (scale x 0.0 1.0 -1.0 1.0))
+   ;; wrap and fold force a value into lo..hi the two ways gen~ does:
+   ;; wrap jumps back to the far edge, fold reflects off it. GLSL's mod
+   ;; and fract only ever wrap at zero — these take any range.
+   (defn wrap [x lo hi]
+     (+ lo (mod (- x lo) (- hi lo))))
+   (defn fold [x lo hi]
+     (let [span (- hi lo)
+           ;; walk a 2-span cycle, then measure back from its midpoint:
+           ;; the first half rises, the second half mirrors it down
+           t (mod (- x lo) (* 2.0 span))]
+       (+ lo (- span (abs (- t span))))))
+   ;; quant is the (floor -> scale back) sandwich: snap x to a grid of
+   ;; step-sized rungs. Works on colors, time, space and pitch alike.
+   (defn quant [x step]
+     (* (floor (/ x step)) step))
+   ;; the shader counterpart of the drone's phasor — a 0..1 sawtooth
+   ;; that restarts rate times a second.
+   (defn ramp [rate] (fract (* time rate)))
+   ;; the inverse of midi->hz, for pulling a pitch back into note-space
+   (defn hz->midi [hz]
+     (+ 69.0 (* 12.0 (log2 (/ hz 440.0)))))")
 
 (def ^:private fallback-image-src
   "When a program defines drones but no image, show a bass/mid/treble

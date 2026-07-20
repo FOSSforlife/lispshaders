@@ -139,9 +139,18 @@ shaper yourself out of the math builtins — these all work inside a drone:
 ;; transfer function reflects the signal every time it climbs past a
 ;; quarter-turn, adding a shifting comb of harmonics a clipper never
 ;; makes. Push `amt` and the folds multiply. This is the metallic one.
-(defn fold [amt sig]
+(defn sin-fold [amt sig]
   (sin (* (+ 1.0 (* 6.0 amt)) sig)))
 ```
+
+!!! tip "The builtin `fold`, and how it differs"
+    `(fold x lo hi)` is always in scope — gen~'s wavefolder, which
+    reflects off the range's edges in straight lines. Drive a signal into
+    it the same way: `(-> sig (* 3.0) (fold -1.0 1.0))`. The `sin-fold`
+    above rounds those reflections into curves instead, which is softer
+    and more bell-like; the builtin's sharp corners are brighter and
+    buzzier. Both are worth having — reach for the builtin first, and
+    write `sin-fold` when its edge is too harsh.
 
 A wavefolder is the distortion with the most _timbral travel_ — as you push
 `amt`, the harmonics don't just get louder, they reshuffle, which is

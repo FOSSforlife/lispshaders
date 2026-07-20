@@ -104,6 +104,28 @@
     (is (str/includes? (glsl "(defn image [uv] (bi->uni (vec3 (:x uv))))")
                        "vec3(uv.x)"))))
 
+(deftest gen-style-range-builtins
+  (testing "wrap forces a value into lo..hi by jumping to the far edge"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (wrap (:x uv) -1.0 1.0)))")
+                       "(-1.0 + mod((uv.x - -1.0), (1.0 - -1.0)))")))
+  (testing "fold reflects off the edges instead — a 2-span cycle, mirrored"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (fold (:x uv) -1.0 1.0)))")
+                       "abs(")
+        "the mirror comes from abs around the span midpoint"))
+  (testing "quant snaps down to a grid of step-sized rungs"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (quant (:x uv) 0.1)))")
+                       "(floor((uv.x / 0.1)) * 0.1)")))
+  (testing "ramp is the shader-side phasor, built on time"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (ramp 0.5)))")
+                       "fract((u_time * 0.5))")))
+  (testing "hz->midi inverts midi->hz"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (hz->midi 440.0)))")
+                       "(69.0 + (12.0 * log2((440.0 / 440.0))))")))
+  (testing "a user's own definition still shadows these"
+    (is (str/includes? (glsl "(defn quant [x step] (* x step))
+                              (defn image [uv] (vec3 (quant (:x uv) 0.1)))")
+                       "(uv.x * 0.1)"))))
+
 (deftest anon-fn-shorthand-inlines
   (testing "% is the sole argument"
     (is (str/includes? (glsl "(defn image [uv] (vec3 (#(* % 2.0) (:x uv))))")
@@ -221,6 +243,17 @@
     (is (str/includes? js-body "osc(110.0)")
         "note keywords compile straight to their frequency")
     (is (isNode (build-drone src)))))
+
+(deftest range-builtins-work-in-drones-too
+  (testing "fold is a wavefolder on a driven signal"
+    (is (isNode (build-drone "(defsound metal (-> (saw :a1) (* 3.0) (fold -1.0 1.0) (* 0.2)))"))))
+  (testing "wrap and quant build over signals"
+    (is (isNode (build-drone "(defsound steps (* 0.2 (osc (wrap (* 400.0 (lfo 0.1)) 100.0 300.0))))")))
+    (is (isNode (build-drone "(defsound stair (* 0.2 (saw (quant (* 400.0 (lfo 0.1)) 55.0))))"))))
+  (testing "pitch math round-trips through note-space"
+    (is (isNode (build-drone "(defsound snapped
+                                (* 0.2 (saw (-> (* 220.0 (+ 1.0 (lfo 0.05)))
+                                                hz->midi (quant 1.0) midi->hz))))")))))
 
 (deftest stereo-drones-are-node-pairs
   (let [src "(defsound wide (->> (pink)

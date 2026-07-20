@@ -60,10 +60,11 @@ signal flows left-to-right down a patch cord.
 | `tapin~` / `tapout~` (feedback) | `(echo ms fb s)`               | delay + feedback in one                          |
 | `pan2~` / `gain~`               | `(pan p s)` / `(* g s)`        | `pan` returns a stereo `vec2`                    |
 | `yafr2` / reverb abstractions   | `(space amt s)`                | four detuned combs, the "water tank"             |
-| `mtof`                          | `(midi->hz m)`                 | or just write the note keyword — `:a1` _is_ 55.0 |
+| `mtof` / `ftom`                 | `(midi->hz m)` / `(hz->midi f)` | or just write the note keyword — `:a1` _is_ 55.0 |
 | `slide~` / `line~` (smoothing)  | `(slew sec s)`                 | low-pass for control signals; glide/portamento   |
 | `cycle~ 0.1` as an LFO          | `(lfo rate)`                   | unipolar 0..1, ready to scale                    |
 | `scale`                         | `(scale x lo hi lo' hi')`      | same argument order; also `bi->uni` / `uni->bi`  |
+| `wrap` / `fold` / `quant` (gen~) | `(wrap x lo hi)` etc.         | same names, same argument order                  |
 | `rand~` / `drunk` smoothed      | `(wander rate)`               | smooth random drift, 0..1                         |
 | `poly~` with N voices           | `iter`                         | unrolls a voice bank at compile time             |
 | `scope~` / `meter~`             | the drones-tab level meter     | one per `defsound`, automatic                    |
