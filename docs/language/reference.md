@@ -60,6 +60,25 @@ and drones alike.
 | `(rsub m n)`                                               | Reversed subtract, `n - m` — reads well threaded: `(-> x (rsub 1.0))` is `1.0 - x`                                       |
 | `(rdiv m n)`                                               | Reversed divide, `n / m` — reads well threaded: `(-> x (rdiv 6.0))` is `6.0 / x`                                         |
 
+## Ranges
+
+| Call                                     | Notes                                                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `(scale x in-min in-max out-min out-max)` | _gen_ — remap `x` from one range to another, exactly like Max/MSP's `[scale]`. Nothing is clamped: feed it a value outside `in-min..in-max` and you get a proportionally extrapolated result |
+| `(bi->uni x)`                            | _gen_ — bipolar → unipolar: `-1..1` becomes `0..1`, i.e. `(scale x -1.0 1.0 0.0 1.0)`                        |
+| `(uni->bi x)`                            | _gen_ — unipolar → bipolar: `0..1` becomes `-1..1`, i.e. `(scale x 0.0 1.0 -1.0 1.0)`                        |
+
+`sin`, `cos` and `wander`-style motion swing bipolar; brightness, `mix`
+amounts and `smoothstep` want unipolar. These three are the bridge:
+
+```clojure
+(mix col-a col-b (bi->uni (sin (* t 2.0))))   ; oscillate a blend
+(-> (:x uv) (scale 0.0 1.0 20.0 200.0))       ; uv across a cutoff sweep
+```
+
+Because they're ordinary DSL functions, they work componentwise on
+vectors too — `(bi->uni (vec3 -1.0 0.0 1.0))` is `(0.0, 0.5, 1.0)`.
+
 ## Trigonometry
 
 | Call                          | Notes                                                         |

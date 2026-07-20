@@ -1070,7 +1070,15 @@
   ;; rdiv/rsub flip the operands of / and - so they read naturally when
   ;; threaded: (-> x (rdiv 6.0)) is 6.0/x, (-> x (rsub 1.0)) is 1.0-x.
   "(defn rdiv [m n] (/ n m))
-   (defn rsub [m n] (- n m))")
+   (defn rsub [m n] (- n m))
+   ;; scale is Max/MSP's [scale] object: remap x from one range to
+   ;; another. bi->uni and uni->bi are the two conversions you reach for
+   ;; constantly — a -1..1 oscillator into 0..1 brightness, and back.
+   (defn scale [x in-min in-max out-min out-max]
+     (+ out-min (* (- out-max out-min)
+                   (/ (- x in-min) (- in-max in-min)))))
+   (defn bi->uni [x] (scale x -1.0 1.0 0.0 1.0))
+   (defn uni->bi [x] (scale x 0.0 1.0 -1.0 1.0))")
 
 (def ^:private fallback-image-src
   "When a program defines drones but no image, show a bass/mid/treble

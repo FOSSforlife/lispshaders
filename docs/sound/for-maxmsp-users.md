@@ -63,6 +63,7 @@ signal flows left-to-right down a patch cord.
 | `mtof`                          | `(midi->hz m)`                 | or just write the note keyword — `:a1` _is_ 55.0 |
 | `slide~` / `line~` (smoothing)  | `(slew sec s)`                 | low-pass for control signals; glide/portamento   |
 | `cycle~ 0.1` as an LFO          | `(lfo rate)`                   | unipolar 0..1, ready to scale                    |
+| `scale`                         | `(scale x lo hi lo' hi')`      | same argument order; also `bi->uni` / `uni->bi`  |
 | `rand~` / `drunk` smoothed      | `(wander rate)`               | smooth random drift, 0..1                         |
 | `poly~` with N voices           | `iter`                         | unrolls a voice bank at compile time             |
 | `scope~` / `meter~`             | the drones-tab level meter     | one per `defsound`, automatic                    |

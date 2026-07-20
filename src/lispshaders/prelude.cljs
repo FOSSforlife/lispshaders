@@ -200,6 +200,8 @@ float midiToHz(float m) {
      {:sig "(abs x), (sign x), (floor x), (ceil x), (fract x)" :doc "(fract x) is the endlessly useful 'repeat' operator."}
      {:sig "(mod x y), (min a b ...), (max a b ...)" :doc "mod is GLSL-style (always positive for positive y)."}
      {:sig "(rsub m n), (rdiv m n)" :doc "Reversed subtract/divide: n - m and n / m. Made for threading — (-> x (rdiv 6.0)) is 6.0/x, (-> x (rsub 1.0)) is 1.0-x."}
+     {:sig "(scale x in-min in-max out-min out-max)" :doc "Remap x from one range to another, like Max's [scale]: (scale s 0.0 1.0 20.0 200.0) turns 0..1 into 20..200."}
+     {:sig "(bi->uni x), (uni->bi x)" :doc "Convert between bipolar -1..1 and unipolar 0..1 — (bi->uni (sin t)) is an oscillator you can use as brightness."}
      {:sig "(clamp x lo hi)" :doc "Constrain x to [lo, hi]."}
      {:sig "(mix a b t)" :doc "Linear blend from a to b by t — the workhorse of shader art."}
      {:sig "(step edge x)" :doc "0.0 when x < edge, else 1.0 — hard threshold."}

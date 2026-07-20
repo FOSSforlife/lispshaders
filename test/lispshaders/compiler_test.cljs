@@ -92,6 +92,18 @@
                               (defn image [uv] (vec3 (rdiv (:x uv) 6.0)))")
                        "(uv.x * 6.0)"))))
 
+(deftest scale-builtins-remap-ranges
+  (testing "scale is Max's [scale]: x from in-range to out-range"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (scale (:x uv) 0.0 1.0 20.0 200.0)))")
+                       "(20.0 + ((200.0 - 20.0) * ((uv.x - 0.0) / (1.0 - 0.0))))")))
+  (testing "bi->uni and uni->bi are scale with the two standard ranges"
+    (let [out (glsl "(defn image [uv] (vec3 (bi->uni (:x uv)) (uni->bi (:y uv)) 0.0))")]
+      (is (str/includes? out "(0.0 + ((1.0 - 0.0) * ((uv.x - -1.0) / (1.0 - -1.0))))"))
+      (is (str/includes? out "(-1.0 + ((1.0 - -1.0) * ((uv.y - 0.0) / (1.0 - 0.0))))"))))
+  (testing "they stay generic over vectors, like any inlined helper"
+    (is (str/includes? (glsl "(defn image [uv] (bi->uni (vec3 (:x uv))))")
+                       "vec3(uv.x)"))))
+
 (deftest anon-fn-shorthand-inlines
   (testing "% is the sole argument"
     (is (str/includes? (glsl "(defn image [uv] (vec3 (#(* % 2.0) (:x uv))))")
