@@ -53,6 +53,7 @@ nav:
   - Home: index.md
   - Getting started: getting-started.md
   - 'Tutorial: your first effects': tutorial.md
+  - 'The intro series (after Uğur Güney)': intro-series.md
   - The language:
       - Thinking in shaders: language/thinking.md
       - Program shape: language/index.md
