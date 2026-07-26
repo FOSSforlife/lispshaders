@@ -118,6 +118,12 @@
   (testing "ramp is the shader-side phasor, built on time"
     (is (str/includes? (glsl "(defn image [uv] (vec3 (ramp 0.5)))")
                        "fract((u_time * 0.5))")))
+  (testing "cartopol packs a point into (radius, angle), Max-style"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (cartopol uvc) 0.0))")
+                       "vec2(length(uvc), atan(uvc.y, uvc.x))")))
+  (testing "poltocar is its inverse: (radius, angle) back to a point"
+    (is (str/includes? (glsl "(defn image [uv] (vec3 (poltocar uvc) 0.0))")
+                       "(uvc.x * vec2(cos(uvc.y), sin(uvc.y)))")))
   (testing "hz->midi inverts midi->hz"
     (is (str/includes? (glsl "(defn image [uv] (vec3 (hz->midi 440.0)))")
                        "(69.0 + (12.0 * log2((440.0 / 440.0))))")))

@@ -45,8 +45,9 @@ have clear gaps.
         cx     (* 0.6 (sin (* 0.4 (:z p))))       ; tunnel centerline
         cy     (* 0.6 (cos (* 0.3 (:z p))))       ;   wandering through space
         offset (- (:xy p) (vec2 cx cy))
-        r      (length offset)
-        wall   (fbm (vec2 (* 3.0 (atan (:y offset) (:x offset))) (* 0.5 (:z p))))
+        pol    (cartopol offset)                  ; (radius, angle) of the wall
+        r      (:x pol)
+        wall   (fbm (vec2 (* 3.0 (:y pol)) (* 0.5 (:z p))))
         d      (abs (- r (+ 1.2 (* 0.3 wall))))   ; distance to the wall
         shine  (/ 0.02 (+ d 0.02))]               ; glow where the ray grazes it
     (+ col (* tint shine 0.06))))

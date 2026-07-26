@@ -142,6 +142,8 @@ quantizes pitch:
 | `(length v)`        | Euclidean length → `float`                        |
 | `(distance a b)`    | `(length (- a b))`                                |
 | `(normalize v)`     | `v` scaled to length 1                            |
+| `(cartopol p)`      | Max/MSP's `[cartopol]`: a point → `(vec2 radius angle)`. The "go polar" move behind every [tunnel](../cookbook/tunnels.md) — `(:y (cartopol p))` is `(atan p.y p.x)`, `(:x (cartopol p))` is `(length p)` |
+| `(poltocar p)`      | The inverse, Max's `[poltocar]`: a `(vec2 radius angle)` → a point. `(poltocar (cartopol p))` is `p`; use it to place things at a radius and angle |
 | `(dot a b)`         | Dot product → `float`                             |
 | `(cross a b)`       | Cross product, `vec3` only                        |
 | `(reflect i n)`     | Mirror `i` about normal `n` (normalize `n` first) |

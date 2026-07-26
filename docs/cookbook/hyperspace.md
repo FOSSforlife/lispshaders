@@ -9,8 +9,9 @@ to lightspeed.
 ## hyperspace — hashing cells for variety
 
 ```clojure
-(let [a      (atan (:y uvc) (:x uvc))
-      r      (length uvc)
+(let [pol    (cartopol uvc)                  ; (radius, angle)
+      a      (:y pol)
+      r      (:x pol)
       cell   (floor (* 60.0 (/ a tau)))      ; which of 60 angular slices?
       seed   (hash1 cell)                    ; that slice's private random number
       streak (fract (+ (* seed 10.0) (* speed (+ 0.5 seed)) (* 0.2 r)))

@@ -11,18 +11,22 @@ These three examples are one idea at three levels. Read them in order.
 ## disco tunnel — change coordinates, change everything
 
 ```clojure
-(let [angle (/ (atan (:y p) (:x p)) tau)   ; direction around the center
-      depth (/ 0.35 (+ (length p) 0.001))  ; 1 / distance = how far down the tube
+(let [pol   (cartopol p)                    ; (radius, angle) — go polar
+      angle (/ (:y pol) tau)                ; direction around the center
+      depth (/ 0.35 (+ (:x pol) 0.001))     ; 1 / distance = how far down the tube
       cell  (vec2 (* 10.0 angle) (+ depth (* 1.5 time)))]
   (step 1.0 (mod (+ (floor (:x cell)) (floor (:y cell))) 2.0)))
 ```
 
-One reframe does all the work. `(atan (:y p) (:x p))` is the **angle** of
-a point around the center; `1 / length` is a **depth** that shoots to
-infinity as you approach the middle. Feed a plain checkerboard those two
-numbers instead of `(x, y)` and the flat pattern wraps into an endless
-3D tube — no perspective math, no geometry. The checker is unchanged; only
-the space it's asked about is new.
+One reframe does all the work, and `cartopol` **is** that reframe: it
+packs a point into `(vec2 radius angle)` — the same
+[Max/MSP `[cartopol]`](../sound/for-maxmsp-users.md) you'd patch in front
+of a spectral effect. The **angle** is the direction of the point around
+the center; `1 / radius` is a **depth** that shoots to infinity as you
+approach the middle. Feed a plain checkerboard those two numbers instead
+of `(x, y)` and the flat pattern wraps into an endless 3D tube — no
+perspective math, no geometry. The checker is unchanged; only the space
+it's asked about is new.
 
 Adding `time` to `depth` doesn't move anything either — it slides *the
 coordinate system* forward, and the sensation of flight emerges. This is
@@ -44,15 +48,17 @@ Swap the hard checker for glow and noise and the same tube becomes molten
 neon:
 
 ```clojure
-(let [a (atan (:y uvc) (:x uvc))
-      r (length uvc)
+(let [pol   (cartopol uvc)                  ; (radius, angle)
+      a     (:y pol)
+      r     (:x pol)
       depth (+ (/ 0.6 (+ r 0.06)) (* 1.5 time))
       n     (fbm (vec2 (* 3.0 (/ a tau)) depth))
       rings (pow (max (sin (* 20.0 depth)) 0.0) 8.0)]
   (* tint (+ (* 0.4 n) rings) (smoothstep 0.0 0.4 r)))
 ```
 
-Same polar setup as disco tunnel. What's new:
+Same polar setup as disco tunnel — one `cartopol` hands us both the angle
+and the radius. What's new:
 
 - The walls are textured with [`fbm`](domain-warping.md) sampled in
   `(angle, depth)` space, so the noise wraps seamlessly around the tube

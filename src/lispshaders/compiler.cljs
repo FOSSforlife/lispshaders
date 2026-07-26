@@ -1094,6 +1094,12 @@
    ;; step-sized rungs. Works on colors, time, space and pitch alike.
    (defn quant [x step]
      (* (floor (/ x step)) step))
+   ;; cartopol and poltocar are Max/MSP's coordinate converters, and each
+   ;; other's inverse. cartopol turns a point into (radius, angle) — the
+   ;; \"go polar\" move that every tunnel is built on — and poltocar turns a
+   ;; (radius, angle) pair back into a point. (poltocar (cartopol p)) is p.
+   (defn cartopol [p] (vec2 (length p) (atan (:y p) (:x p))))
+   (defn poltocar [p] (* (:x p) (vec2 (cos (:y p)) (sin (:y p)))))
    ;; the shader counterpart of the drone's phasor — a 0..1 sawtooth
    ;; that restarts rate times a second.
    (defn ramp [rate] (fract (* time rate)))

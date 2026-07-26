@@ -65,6 +65,7 @@ signal flows left-to-right down a patch cord.
 | `cycle~ 0.1` as an LFO          | `(lfo rate)`                   | unipolar 0..1, ready to scale                    |
 | `scale`                         | `(scale x lo hi lo' hi')`      | same argument order; also `bi->uni` / `uni->bi`  |
 | `wrap` / `fold` / `quant` (gen~) | `(wrap x lo hi)` etc.         | same names, same argument order                  |
+| `cartopol` / `poltocar`          | `(cartopol p)` / `(poltocar p)` | a point ⇄ `(vec2 radius angle)`; each other's inverse |
 | `rand~` / `drunk` smoothed      | `(wander rate)`               | smooth random drift, 0..1                         |
 | `poly~` with N voices           | `iter`                         | unrolls a voice bank at compile time             |
 | `scope~` / `meter~`             | the drones-tab level meter     | one per `defsound`, automatic                    |

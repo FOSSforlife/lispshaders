@@ -439,14 +439,16 @@
 
    {:name "disco tunnel"
     :code
-";; Polar coordinates turn the plane into an endless tunnel.
-;; Move your mouse to steer!
+";; Polar coordinates turn the plane into an endless tunnel. `cartopol`
+;; is the whole trick in one word: it packs a point into (radius, angle),
+;; exactly like Max/MSP's [cartopol]. Move your mouse to steer!
 
 (defn image [uv]
   (let [m (- mouse (vec2 0.5))
         p (- uvc (* m 1.5))
-        angle (/ (atan (:y p) (:x p)) tau)
-        depth (/ 0.35 (+ (length p) 0.001))
+        pol (cartopol p)                       ; (radius, angle) — go polar
+        angle (/ (:y pol) tau)
+        depth (/ 0.35 (+ (:x pol) 0.001))
         cell (vec2 (* 10.0 angle) (+ depth (* 1.5 time)))
         checker (step 1.0 (mod (+ (floor (:x cell)) (floor (:y cell))) 2.0))
         tint (palette (+ (* 0.1 depth) (* 0.05 time))
@@ -516,12 +518,14 @@
    {:name "neon tunnel"
     :code
 ";; Polar coordinates make an endless tunnel; `0.6 / r` is depth, so the
-;; center recedes forever. fbm churns the walls, and sharp sine rings
-;; rush toward you. smoothstep hides the singular point at r = 0.
+;; center recedes forever. `cartopol` gives us the angle and radius in one
+;; step. fbm churns the walls, sharp sine rings rush toward you, and
+;; smoothstep hides the singular point at r = 0.
 
 (defn image [uv]
-  (let [a (atan (:y uvc) (:x uvc))
-        r (length uvc)
+  (let [pol (cartopol uvc)                      ; (radius, angle)
+        a (:y pol)
+        r (:x pol)
         depth (+ (/ 0.6 (+ r 0.06)) (* 0.5 time))
         n (fbm (vec2 (* 3.0 (/ a tau)) depth))
         rings (pow (max (sin (* 20.0 depth)) 0.0) 8.0)
@@ -537,8 +541,9 @@
 ;; glow — light blooms wherever a value crosses zero.
 
 (defn image [uv]
-  (let [a (atan (:y uvc) (:x uvc))
-        r (length uvc)
+  (let [pol (cartopol uvc)                      ; (radius, angle)
+        a (:y pol)
+        r (:x pol)
         seg (/ tau 6.0)
         wedge (- (abs (- (mod a seg) (* 0.5 seg))) (* 0.25 seg))
         depth (+ (/ 0.5 (+ r 0.05)) time)
@@ -556,8 +561,9 @@
 ;; streak endlessly, so the jump to lightspeed never stops.
 
 (defn image [uv]
-  (let [a (atan (:y uvc) (:x uvc))
-        r (length uvc)
+  (let [pol (cartopol uvc)                      ; (radius, angle)
+        a (:y pol)
+        r (:x pol)
         speed (* 0.5 time)
         cell (floor (* 60.0 (/ a tau)))
         seed (hash1 cell)
@@ -656,9 +662,9 @@
                      cx (* 0.6 (sin (* 0.4 (:z p))))
                      cy (* 0.6 (cos (* 0.3 (:z p))))
                      offset (- (:xy p) (vec2 cx cy))
-                     r (length offset)
-                     wall (fbm (vec2 (* 3.0 (atan (:y offset) (:x offset)))
-                                     (* 0.5 (:z p))))
+                     pol (cartopol offset)          ; (radius, angle) of the wall
+                     r (:x pol)
+                     wall (fbm (vec2 (* 3.0 (:y pol)) (* 0.5 (:z p))))
                      d (abs (- r (+ 1.2 (* 0.3 wall))))
                      shine (/ 0.02 (+ d 0.02))
                      tint (palette (+ (* 0.05 (:z p)) (* 0.3 wall))
